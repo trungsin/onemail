@@ -5,9 +5,38 @@
 
 echo "--- OneMail Master Setup V2 Starting ---"
 
+# 0. System Dependency Check & Installation
+echo "[0/4] Checking system dependencies..."
+
+install_dependencies() {
+    echo "Installing missing dependencies (Docker, Curl, Git)..."
+    if [ -f /etc/debian_version ]; then
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl gnupg git
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    elif [ -f /etc/redhat-release ]; then
+        sudo yum install -y yum-utils git curl
+        sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        sudo systemctl start docker
+        sudo systemctl enable docker
+    fi
+}
+
+if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
+    install_dependencies
+else
+    echo "Docker and Docker Compose are already installed."
+fi
+
 # 1. Configuration Setup
 if [ ! -f .env ]; then
-    echo "Error: .env file missing. Please create it first."
+    echo "Error: .env file missing. Please create it first (using env.example as a template)."
     exit 1
 fi
 
