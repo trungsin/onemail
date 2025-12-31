@@ -1,6 +1,6 @@
 services:
   db:
-    image: ${MARIADB_IMAGE:-mariadb:10.11}
+    image: mariadb:10.11
     command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     restart: always
     volumes:
@@ -17,7 +17,7 @@ services:
       retries: 5
 
   redis:
-    image: ${REDIS_IMAGE:-redis:alpine}
+    image: redis:alpine
     restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD}
     healthcheck:
@@ -27,12 +27,8 @@ services:
       retries: 5
 
   app:
-    image: ${NEXTCLOUD_IMAGE:-nextcloud:28-apache}
+    image: nextcloud:28-apache
     restart: always
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    # Ports handled by nginx in VPS mode
     expose:
       - "80"
     volumes:
@@ -46,37 +42,38 @@ services:
       - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
       - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN} localhost cloud.feelmagic.store
+      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN} cloud.${DOMAIN} office.${DOMAIN} mail.${DOMAIN}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     extra_hosts:
-      - "cloud.feelmagic.store:host-gateway"
-      - "mail.feelmagic.store:host-gateway"
-      - "office.feelmagic.store:host-gateway"
+      - "cloud.${DOMAIN}:host-gateway"
+      - "office.${DOMAIN}:host-gateway"
+      - "mail.${DOMAIN}:host-gateway"
 
   onlyoffice:
-    image: ${ONLYOFFICE_IMAGE:-onlyoffice/documentserver:latest}
+    image: onlyoffice/documentserver:latest
     restart: always
     expose:
       - "80"
     environment:
-      - JWT_ENABLED=false
+      - JWT_ENABLED=true
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-OneMailSecret2025}
+      - JWT_HEADER=Authorization
     volumes:
       - onlyoffice_data:/var/www/onlyoffice/Data
       - onlyoffice_log:/var/log/onlyoffice
-      - onlyoffice_lib:/var/lib/onlyoffice
+    extra_hosts:
+      - "cloud.${DOMAIN}:host-gateway"
+      - "office.${DOMAIN}:host-gateway"
+      - "mail.${DOMAIN}:host-gateway"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost/healthcheck" ]
       interval: 30s
       timeout: 10s
       retries: 3
-    extra_hosts:
-      - "cloud.feelmagic.store:host-gateway"
-      - "mail.feelmagic.store:host-gateway"
-      - "office.feelmagic.store:host-gateway"
 
   mailserver:
     image: stalwartlabs/stalwart:latest
@@ -87,7 +84,7 @@ services:
       - "465:465"
       - "587:587"
       - "993:993"
-      - "8092:8080" # Management UI access via port 8092 for extra safety or reverse proxy
+      - "8080:8080"
     environment:
       - STALWART_ADMIN_PASSWORD=${STALWART_ADMIN_PASSWORD}
     volumes:
@@ -99,7 +96,7 @@ services:
       retries: 3
 
   nginx:
-    image: ${NGINX_IMAGE:-nginx:alpine}
+    image: nginx:alpine
     restart: always
     ports:
       - "80:80"
@@ -111,15 +108,12 @@ services:
       - app
       - onlyoffice
       - mailserver
-    profiles:
-      - vps
 
 volumes:
   nextcloud_data:
   db_data:
   onlyoffice_data:
   onlyoffice_log:
-  onlyoffice_lib:
   mail_data:
 
 

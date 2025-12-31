@@ -1,55 +1,59 @@
-# Admin Guide - OneMail Collaboration Platform
+# HƯỚNG DẪN QUẢN TRỊ VIÊN ONEMAIL (DAILY ADMIN GUIDE)
 
-Welcome to your self-hosted collaboration platform. This guide explains how to manage your Nextcloud + OnlyOffice instance.
+Chào mừng bạn đã hoàn tất tích hợp hệ thống OneMail. Dưới đây là quy trình chuẩn để bạn vận hành hệ thống hàng ngày.
 
-## 🔑 1. Initial Login
-- **URL**: `http://localhost:8080` (Local) or `https://cloud.yourdomain.com` (VPS)
-- **User**: `admin` (or what you set in `.env`)
-- **Password**: (Check `NEXTCLOUD_ADMIN_PASSWORD` in `.env`)
+## 1. Quy trình tạo Tài khoản Người dùng (SSO)
+Hệ thống sử dụng Nextcloud làm trung tâm lưu trữ danh tính. **Luôn tạo người dùng mới tại Nextcloud.**
 
-## 💾 2. Managing User Quota
-By default, the system is configured to **1GB per user** via the install script.
-To change this manually:
-1. Click your profile icon (top right) -> **Administration settings**.
-2. Go to **Users** (left sidebar).
-3. Find the user you want to edit.
-4. Click the **...** (three dots) or looking for the **Quota** column.
-5. Select "1 GB" or enter a custom value.
+1.  Truy cập: `https://cloud.feelmagic.store` (Đăng nhập bằng Admin).
+2.  Vào mục **Users** (Người dùng).
+3.  Tạo người dùng mới với thông tin:
+    *   **Username**: Tên đăng nhập (ví dụ: `nguyenvana`).
+    *   **Display Name**: Tên hiển thị.
+    *   **Password**: Mật khẩu ban đầu.
+    *   **Email**: Địa chỉ email họ sẽ sử dụng (ví dụ: `vana@feelmagic.store`).
 
-## ➕ 3. Creating & Deleting Users
-1. Go to your profile icon -> **Users**.
-2. **Create**: Click "+ New user" at the top. Enter Username, Display Name, and Password. Assign to a group if needed.
-3. **Delete**: Click the trash icon or the three dots menu next to the user name and select "Delete user".
+> [!TIP]
+> Ngay sau khi bạn tạo ở Nextcloud, người dùng này có thể dùng chính tài khoản đó để đăng nhập vào Mailserver.
 
-## 📝 4. Enabling OnlyOffice Integration
-The install script attempts to enable this automatically, but follow these steps to verify or manually configure:
-1. Go to **Administration settings** -> **ONLYOFFICE** (bottom of the left sidebar).
-2. **Document Editing Service address**:
-   - Local: `http://localhost:8081`
-   - VPS: `https://office.yourdomain.com`
-3. **Document Editing Service address for internal requests from server**:
-   - Both: `http://onlyoffice/` (This uses the internal Docker network).
-4. **Secret Key**: Copy the `ONLYOFFICE_JWT_SECRET` from your `.env` file.
-5. Click **Save**.
-6. Check the file types (DOCX, XLSX, PPTX) you want to open with OnlyOffice.
+---
 
-## 🇻🇳 5. Vietnamese Support & PDF Preview
-- **Vietnamese**: Nextcloud supports UTF-8 by default. You can upload files with Vietnamese names (e.g., `Báo cáo quý 1.docx`) without issues.
-- **PDF Preview**: The system is configured to generate previews for PDF files automatically.
+## 2. Cấu hình Mail cho Người dùng mới
+Người dùng không cần cấu hình phức tạp, họ chỉ cần làm theo các bước sau trong lần đầu tiên:
 
-## 🔧 Troubleshooting
-- **OnlyOffice not opening**: 
-  - Ensure the "Internal requests" address is set to `http://onlyoffice/`.
-  - Check if the JWT Secret matches the one in `.env`.
-  - Check browser console for "Mixed Content" errors (if using HTTP on local vs HTTPS on VPS).
-- **Nextcloud not starting**:
-  - Check logs: `docker compose logs -f app`
-  - Ensure the database is healthy: `docker compose ps`
-- **Mailcow Conflict**: 
-  - If you have Mailcow on the same server, change `HTTP_PORT` in `.env` to something other than 80 (e.g., 8080) and use a different Nginx configuration or a common reverse proxy.
+### Cách A: Dùng trực tiếp trong Nextcloud (Khuyên dùng)
+1.  Người dùng đăng nhập vào `https://cloud.feelmagic.store`.
+2.  Click vào biểu tượng **Mail** trên thanh menu.
+3.  Nextcloud sẽ tự động nhận diện tài khoản. Nếu được hỏi, hãy điền:
+    *   **IMAP Host**: `mail.feelmagic.store` (Port 993, SSL/TLS).
+    *   **SMTP Host**: `mail.feelmagic.store` (Port 465, SSL/TLS).
+    *   **User/Password**: Chính là tài khoản Nextcloud vừa tạo.
 
-## 🚀 Deployment Commands (Reminder)
-- **Start**: `docker compose up -d`
-- **Stop**: `docker compose down`
-- **Restart**: `docker compose restart`
-- **View Logs**: `docker compose logs -f`
+### Cách B: Cấu hình Thủ công (Nếu bị lỗi "Not reachable")
+Nếu dùng cách tự động bị báo "Not reachable", bạn hãy chuyển sang tab **Manual** và điền:
+*   **IMAP Server**: `mailserver` (Đây là tên container nôi bộ) | **Port**: `143` | **Security**: `None` (hoặc STARTTLS)
+*   **SMTP Server**: `mailserver` | **Port**: `587` | **Security**: `None` (hoặc STARTTLS)
+*   **Username**: Địa chỉ email đầy đủ (ví dụ: `tpnhansu@feelmagic.store`).
+*   **Password**: Mật khẩu Nextcloud.
+
+> [!IMPORTANT]
+> Việc dùng `mailserver` giúp Nextcloud kết nối trực tiếp trong mạng Docker, bỏ qua tường lửa của VPS.
+
+---
+
+## 3. Quản lý Tài liệu với OnlyOffice
+Hệ thống đã được cấu hình tự động nhận diện các file văn phòng.
+
+*   Để tạo mới: Click nút **[+]** -> Chọn Document/Spreadsheet/Presentation.
+*   Để chỉnh sửa: Chỉ cần click chuột trái vào file `.docx`, `.xlsx`, hoặc `.pptx`. Trình soạn thảo sẽ mở ra ngay trong tab trình duyệt.
+*   **Lưu tự động**: Mọi thay đổi sẽ được lưu ngay lập tức vào Nextcloud.
+
+---
+
+## 4. Xử lý sự cố nhanh
+Nếu thấy OnlyOffice báo lỗi kết nối:
+1.  Đảm bảo container đang chạy: `docker compose ps`.
+2.  Chạy lại kịch bản sửa lỗi nếu cần: `bash fix-onlyoffice-pro.sh`.
+
+---
+*Chúc bạn có những trải nghiệm làm việc tuyệt vời cùng OneMail!*
