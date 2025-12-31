@@ -34,6 +34,19 @@ else
     echo "Docker and Docker Compose are already installed."
 fi
 
+# 0.1 Firewall Configuration (UFW)
+echo "[0.1/4] Configuring Firewall (UFW)..."
+if command -v ufw &> /dev/null; then
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+    sudo ufw allow 25,143,465,587,993/tcp        # Mail Ports
+    sudo ufw allow 8080/tcp                       # Stalwart Admin
+    sudo ufw --force enable
+    echo "Firewall rules updated and enabled."
+else
+    echo "UFW not found. Please ensure ports 80, 443, 25, 143, 465, 587, 993, 8080 are open manually."
+fi
+
 # 1. Configuration Setup
 if [ ! -f .env ]; then
     echo "Error: .env file missing. Please create it first (using env.example as a template)."
